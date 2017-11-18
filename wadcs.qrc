@@ -1,0 +1,6 @@
+<RCC>
+    <qresource prefix="/">
+        <file>images/uart-state-off.png</file>
+        <file>images/uart-state-on.png</file>
+    </qresource>
+</RCC>
