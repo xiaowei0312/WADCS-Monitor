@@ -15,9 +15,6 @@ MainWindow::MainWindow(QWidget *parent) :
     //init the sendTimer
     sendTimer = new QTimer();
     
-    //init the widgets
-    //initWidgets();
-    
     //generate the MySerialPort object
     this->mySerialPort = new MySerialPort();
     
@@ -44,9 +41,11 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(ui->checkbox_uart_setting_rts,SIGNAL(stateChanged(int)),this,SLOT(uartOnSendRts(int)));
     connect(ui->box_wav,SIGNAL(toggled(bool)),this,SLOT(wavOnStatusChanged(bool)));
     connect(ui->box_uart_rcv,SIGNAL(toggled(bool)),SLOT(uartRcvOnStatusChanged(bool)));
-    connect(ui->edit_uart_send_timely,SIGNAL(textChanged(const QString &)),this,SLOT(uartOnSendTimeChanged(const QString &)));
+    connect(ui->edit_uart_send_timely,SIGNAL(editingFinished()),this,SLOT(uartOnSendTimeChanged()));
     connect(sendTimer,SIGNAL(timeout()),this,SLOT(sendTimerTimeout()));
    
+    //init the widgets
+    initWidgets();
 }
 
 MainWindow::~MainWindow()
@@ -70,11 +69,12 @@ void MainWindow::changeEvent(QEvent *e)
 
 void MainWindow::initWidgets()
 {
-    ui->btn_uart_send->setEnabled(false);
-    ui->btn_uart_send_choose_file->setEnabled(false);
+//    ui->btn_uart_send->setEnabled(false);
+//    ui->btn_uart_send_choose_file->setEnabled(false);
     ui->edit_uart_send_timely->setValidator(
                     new QRegExpValidator(
                             QRegExp("^([1-9]\\d{0,15}|0)$"),this));
+    ui->edit_uart_send_timely->setText(QString::number(1000));
 }
 
 void MainWindow::uartSettingsInit()
@@ -306,12 +306,59 @@ void MainWindow::uartSendData(QString data,bool sendAsHex, bool sendNewLine){
 void MainWindow::uartSendFile(QString filePath,bool sendHex, bool sendNewLine){
     
 }
-void MainWindow::uartOnSettingMore(){
-    
-}
+
 void MainWindow::uartOnSendChooseFile(){
     
 }
+
+void MainWindow::uartOnSendHex(int state){
+    if(state)
+        ui->checkbox_uart_send_newline->setEnabled(false);
+    else
+        ui->checkbox_uart_send_newline->setEnabled(true);
+}
+
+void MainWindow::uartOnSendNewLine(int state){
+    //do nothing...
+}
+
+void MainWindow::uartOnSendTimely(int state){
+    if(state){
+        int milltimes = ui->edit_uart_send_timely->text().toInt();
+        if(milltimes <= 0)
+            return;
+        sendTimer->start(milltimes);
+    }else{
+        sendTimer->stop();
+    }
+}
+
+void MainWindow::uartOnSendTimeChanged()
+{
+    QString text =  ui->edit_uart_send_timely->text();
+    if(text.isEmpty())
+        return;
+    int sendTimeInterval = text.toInt();
+    if(sendTimeInterval>0){
+        sendTimer->setInterval(sendTimeInterval);
+    }
+}
+
+void MainWindow::sendTimerTimeout(){
+    this->uartOnSend();
+}
+
+void MainWindow::uartOnSettingMore(){
+    
+}
+
+void MainWindow::uartOnSendDtr(int state){
+    //do nothing...
+}
+void MainWindow::uartOnSendRts(int state){
+    //do nothing...
+}
+
 void MainWindow::uartOnRcvClear(){
     ui->textbrowser_uart_receive->clear();
     hasReceivedData.clear();
@@ -333,48 +380,9 @@ void MainWindow::uartOnRcvHexDisplay(int state){
 
 void MainWindow::uartOnRcvSaveToFile(int state){}
 
-void MainWindow::uartOnSendHex(int state){
-    if(state)
-        ui->checkbox_uart_send_newline->setEnabled(false);
-    else
-        ui->checkbox_uart_send_newline->setEnabled(true);
-}
-void MainWindow::uartOnSendNewLine(int state){
-    //do nothing...
-}
-void MainWindow::uartOnSendTimely(int state){
-    if(state && sendTimer->interval()>0){
-        sendTimer->start();
-    }else{
-        sendTimer->stop();
-    }
-}
-void MainWindow::sendTimerTimeout(){
-    this->uartOnSend();
-}
-void MainWindow::uartOnSendDtr(int state){
-    //do nothing...
-}
-void MainWindow::uartOnSendRts(int state){
-    //do nothing...
-}
 void MainWindow::uartRcvOnStatusChanged(bool checked){
     mySerialPort->disableReceiving();
 }
-void MainWindow::wavOnStatusChanged(bool checked){
-    //do nothing...
-}
-
-void MainWindow::uartOnSendTimeChanged(const QString &text)
-{
-    if(text.isEmpty())
-        return;
-    int sendTimeInterval = text.toInt();
-    if(sendTimeInterval>0){
-        sendTimer->setInterval(sendTimeInterval);
-    }
-}
-
 void MainWindow::uartOnDataReceived(const QByteArray &data){
     QString text;
     hasReceivedData.append(data);
@@ -400,3 +408,8 @@ void MainWindow::appendStringToPlainText(QString text)
         scrollbar->setSliderPosition(scrollbar->maximum());
     }
 }
+
+void MainWindow::wavOnStatusChanged(bool checked){
+    //do nothing...
+}
+

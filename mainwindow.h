@@ -64,7 +64,7 @@ public slots:
     void uartOnSendRts(int state);
     void uartRcvOnStatusChanged(bool checked);
     void wavOnStatusChanged(bool checked);
-    void uartOnSendTimeChanged(const QString &text);
+    void uartOnSendTimeChanged();
     void sendTimerTimeout();
     void uartOnDataReceived(const QByteArray &);
 };
