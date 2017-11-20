@@ -3,7 +3,9 @@
 
 #include <QMainWindow>
 #include <windows.h>
+#include <QInputDialog>
 #include "myserialport.h"
+#include "qcustomplot.h"
 
 namespace Ui {
 class MainWindow;
@@ -36,6 +38,24 @@ private:
     MySerialPort *mySerialPort;
     QByteArray hasReceivedData;
     QTimer *sendTimer;
+private:
+    QTimer dataTimer;
+    void customPlotInit();
+    void setupRealtimeDataDemo(QCustomPlot *customPlot);
+private slots:
+    void realtimeDataSlot();
+    void titleDoubleClick(QMouseEvent *event);
+    void axisLabelDoubleClick(QCPAxis* axis, QCPAxis::SelectablePart part);
+    void legendDoubleClick(QCPLegend* legend, QCPAbstractLegendItem* item);
+    void selectionChanged();
+    void mousePress();
+    void mouseWheel();
+    void addRandomGraph();
+    void removeSelectedGraph();
+    void removeAllGraphs();
+    void contextMenuRequest(QPoint pos);
+    void moveLegend();
+    void graphClicked(QCPAbstractPlottable *plottable, int dataIndex);
 private:
     void uartSettingsInit();
     void uartEnumation();
