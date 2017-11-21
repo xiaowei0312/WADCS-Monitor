@@ -1,6 +1,7 @@
 #include "myserialport.h"
 #include "myreceivethread.h"
 #include "mysendthread.h"
+#include "myprotoparsethread.h"
 
 MySerialPort::MySerialPort(QObject *parent) :
     QObject(parent)
@@ -34,6 +35,11 @@ MySerialPort::~MySerialPort()
         delete receiveThread;
         receiveThread = NULL;
     }
+    if (parseThread)
+    {
+        delete parseThread;
+        parseThread = NULL;
+    }
     if (isOpen())
         port.close();
 }
@@ -45,9 +51,11 @@ void MySerialPort::initPrivateVariable()
     receiveThread = NULL;
     sendingEnable = false;
     receivingEnable = false;
+    parsingEnable = false;
     closeCalled = false;
     saveStateSendingEnable = false;
     saveStateReceivingEnable = false;
+    saveStateParsingEnable = false;
     saveStateReceiveData = false;
 }
 
@@ -62,6 +70,8 @@ bool MySerialPort::open()
             enableSending();
         if (saveStateReceivingEnable)
             enableReceiving();
+        if (saveStateParsingEnable)
+            enableParsing();
         if (saveStateReceiveData)
             receiveData();
         closeCalled = false;
@@ -95,9 +105,11 @@ void MySerialPort::close()
     // Save the state
     saveStateSendingEnable = isSendingEnable();
     saveStateReceivingEnable = isReceivingEnable();
+    saveStateParsingEnable = isParsingEnable();
     // Close the port
     disableReceiving();
     disableSending();
+    disableParsing();
     port.close();
     // TODO: should I stop send and receive?
 }
@@ -271,5 +283,62 @@ uchar MySerialPort::receiveData()
         saveStateReceiveData = true;
         receiveThread->start();
     }
+    return 1;
+}
+
+// Enable the SerialPort to parse data (init the thread)
+void MySerialPort::enableParsing()
+{
+    // If the Sending is not already active AND the sendThead is not initialized
+    if (!parsingEnable && !parseThread)
+    {
+        parseThread = new MyProtoParseThread(port);
+        connect(parseThread, SIGNAL(dataParsed(const UartDataPackage&)),
+                this, SIGNAL(dataParsed(const UartDataPackage &)));
+        parsingEnable = true;
+    }
+}
+// Disable the SerialPort to send data (terminate the thread)
+void MySerialPort::disableParsing()
+{
+    // If the Sending is already active AND there is a sendThread
+    if (parsingEnable && parseThread)
+    {
+        delete parseThread;
+        parseThread = NULL;
+        parsingEnable = false;
+    }
+}
+bool MySerialPort::isParsingEnable() const
+{
+    return parsingEnable;
+}
+// Stop the currently sending data operation (don't terminate the thread)
+void MySerialPort::stopParsing()
+{
+    // If the Sending is not alread active OR the sendThread is not initialized
+    if (!parsingEnable || !parseThread)
+        return;
+    // If the SerialPort is currently sending data, stop
+    if (parseThread->isRunning())
+    {
+        parseThread->stopParsing();
+        //wait(); ??????????
+        parseThread->wait();
+    }
+}
+// Enqueue data to the sendThread queue
+// return 1     OK
+// return 2     port closed
+// return 3     sending operation disable
+uchar MySerialPort::parseData(const QByteArray &data)
+{
+    // check the port if is open
+    if (!isOpen())
+        return 2;
+    // check if sending operation is enable
+    if (!parsingEnable || !parseThread)
+        return 3;
+    parseThread->addDataToParse(data);
     return 1;
 }

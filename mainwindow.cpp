@@ -5,6 +5,7 @@
 #include <QSettings>
 #include <QMessageBox>
 #include <QScrollBar>
+#include <QMetaType>
 
 void MainWindow::customPlotInit()
 {
@@ -79,8 +80,8 @@ void MainWindow::setupRealtimeDataDemo(QCustomPlot *customPlot)
   connect(customPlot->yAxis, SIGNAL(rangeChanged(QCPRange)), customPlot->yAxis2, SLOT(setRange(QCPRange)));
   
   // setup a timer that repeatedly calls MainWindow::realtimeDataSlot:
-  connect(&dataTimer, SIGNAL(timeout()), this, SLOT(realtimeDataSlot()));
-  dataTimer.start(0); // Interval 0 means to refresh as fast as possible
+  //connect(&dataTimer, SIGNAL(timeout()), this, SLOT(realtimeDataSlot()));
+  //dataTimer.start(0); // Interval 0 means to refresh as fast as possible
 }
 
 
@@ -354,6 +355,9 @@ MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
     ui(new Ui::MainWindow)
 {
+    qRegisterMetaType<UartDataPackage>("UartDataPackage");
+    qRegisterMetaType<UartDataPackage>("UartDataPackage&");
+    
     ui->setupUi(this);
     
     customPlotInit();
@@ -600,7 +604,9 @@ bool MainWindow::uartOpen(){
     }
     mySerialPort->enableSending();
     mySerialPort->enableReceiving();
+    mySerialPort->enableParsing();
     connect(mySerialPort,SIGNAL(dataReceived(const QByteArray &)),this,SLOT(uartOnDataReceived(const QByteArray &)));
+    connect(mySerialPort,SIGNAL(dataParsed(const UartDataPackage &)),this,SLOT(uartOnDataParsed(const UartDataPackage &)));    
     mySerialPort->receiveData();
     
     ui->btn_uart_setting_open->setText(QString::fromLocal8Bit("关闭串口"));
@@ -738,6 +744,7 @@ void MainWindow::uartOnDataReceived(const QByteArray &data){
         text = data;
     }
     appendStringToPlainText(text);
+    mySerialPort->parseData(data);   //解析数据
 }
 
 void MainWindow::appendStringToPlainText(QString text)
@@ -757,4 +764,38 @@ void MainWindow::appendStringToPlainText(QString text)
 
 void MainWindow::wavOnStatusChanged(bool checked){
     //do nothing...
+}
+
+void MainWindow::uartOnDataParsed(const UartDataPackage &parsePkg)
+{
+    double displaySec = 8;
+    static QTime time(QTime::currentTime());
+    static double lastPointKey = 0;
+    // calculate two new data points:
+    double key = time.elapsed()/1000.0; // time elapsed since start of demo, in seconds
+    
+    // add data to lines:
+    ui->customPlot->graph(0)->addData(key, parsePkg.data.at(0));
+    lastPointKey = key;
+    ui->customPlot->xAxis->setRangeLower(key < displaySec ? 0 : key-displaySec);  //左边开始，大于8s自动平移
+    ui->customPlot->xAxis->setRangeUpper(key < displaySec ? displaySec : key);
+    ui->customPlot->replot();
+    
+    // calculate frames per second:
+    static double lastFpsKey;
+    static int frameCount;
+    ++frameCount;
+    if (key-lastFpsKey > 2) // average fps over 2 seconds
+    {
+        ui->statusBar->showMessage(
+                    QString("%1 FPS, Total Data points: %2")
+                    .arg(frameCount/(key-lastFpsKey), 0, 'f', 0)
+                    .arg(ui->customPlot->graph(0)->data()->size()+ui->customPlot->graph(1)->data()->size())
+                    , 0);
+        lastFpsKey = key;
+        frameCount = 0;
+        //this->dataTimer.stop();
+        static int totalSec = 0;
+        totalSec += 2;
+    }
 }

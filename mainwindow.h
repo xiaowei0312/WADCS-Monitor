@@ -4,8 +4,10 @@
 #include <QMainWindow>
 #include <windows.h>
 #include <QInputDialog>
+#include <QList>
 #include "myserialport.h"
 #include "qcustomplot.h"
+#include "common.h"
 
 namespace Ui {
 class MainWindow;
@@ -37,6 +39,8 @@ private:
     QList<QString> stopbitList;
     MySerialPort *mySerialPort;
     QByteArray hasReceivedData;
+    QList<UartDataPackage> hasParsedData; 
+    
     QTimer *sendTimer;
 private:
     QTimer dataTimer;
@@ -87,6 +91,7 @@ public slots:
     void uartOnSendTimeChanged();
     void sendTimerTimeout();
     void uartOnDataReceived(const QByteArray &);
+    void uartOnDataParsed(const UartDataPackage &parsePkg);
 };
 
 #endif // MAINWINDOW_H

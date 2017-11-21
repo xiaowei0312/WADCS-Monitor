@@ -4,9 +4,11 @@
 #include <QObject>
 #include <QVariant>
 #include "qextserialport.h"
+#include "common.h"
 
 class MySendThread;
 class MyReceiveThread;
+class MyProtoParseThread;
 
 Q_DECLARE_METATYPE(BaudRateType);
 Q_DECLARE_METATYPE(DataBitsType);
@@ -22,12 +24,16 @@ private:
     QextSerialPort port;
     MySendThread *sendThread;
     MyReceiveThread *receiveThread;
+    MyProtoParseThread *parseThread;
+    
     bool sendingEnable;
     bool receivingEnable;
+    bool parsingEnable;
     // Variables to restore the previous state to a reopening of the SerialPort
     bool closeCalled;
     bool saveStateSendingEnable;
     bool saveStateReceivingEnable;
+    bool saveStateParsingEnable;
     bool saveStateReceiveData;
     
 private:
@@ -79,8 +85,18 @@ public:
     // return 1     OK
     // return 2     port closed
     // return 3     receiving operation disable
+    
+    void enableParsing();         // enable the SerialPort to parse data (init the thread)
+    void disableParsing();        // disable the SerialPort to parse data (terminate the thread)
+    bool isParsingEnable() const;
+    void stopParsing();           // stop the currently parsing data operation (don't terminate the thread)
+    uchar parseData(const QByteArray &data);    // parse data (enqueue data to the parseThread queue)
+    // return 1     OK
+    // return 2     port closed
+    // return 3     parsing operation disable
 signals:
-    void dataReceived(const QByteArray &dataReceived);    
+    void dataReceived(const QByteArray &dataReceived);
+    void dataParsed(const UartDataPackage &parsedPkg);
 };
 
 #endif // MYSERIALPORT_H

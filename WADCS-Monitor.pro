@@ -21,7 +21,8 @@ SOURCES += main.cpp\
     myserialport.cpp \
     mysendthread.cpp \
     myreceivethread.cpp \
-    stringutil.cpp
+    stringutil.cpp \
+    myprotoparsethread.cpp
 HEADERS  += mainwindow.h \
     qcustomplot.h \ 
     qextserialbase.h \
@@ -31,7 +32,9 @@ HEADERS  += mainwindow.h \
     myserialport.h \
     mysendthread.h \
     myreceivethread.h \
-    stringutil.h
+    stringutil.h \
+    myprotoparsethread.h \
+    common.h
 
 FORMS    += \
     mainwindow.ui
