@@ -1,4 +1,5 @@
 #include "myprotoparsethread.h"
+#include <QDebug>
 
 MyProtoParseThread::MyProtoParseThread(QextSerialPort &adrPort): port(adrPort)
 {
@@ -93,10 +94,38 @@ void MyProtoParseThread::parseFunction0(QByteArray &data,UartDataPackage *pkg)
     pkg->length = data.length();
     pkg->checksum = -1;
     pkg->timestamp = QDateTime::currentDateTime();
+    pkg->isValid = true;
 }
+//void MyProtoParseThread::parseFunction0(QByteArray &data,UartDataPackage *pkg)
+//{
+//    //pkg->head = pkg->tail = NULL;
+//    pkg->head.clear();
+//    pkg->tail.clear();
+//    pkg->data = data;
+//    pkg->length = data.length();
+//    pkg->checksum = -1;
+//    pkg->timestamp = QDateTime::currentDateTime();
+//    pkg->isValid = true;
+//}
+//FFFE03A0B0C0
 void MyProtoParseThread::parseFunction1(QByteArray &data,UartDataPackage *pkg)
 {
-    
+    qDebug() << data.length();
+    qDebug("%02x,%02x",data[0] & 0xFF,data[1]);
+    if((data.length() != 6) || (data[0]&0xFF != 0xFF) || (data[1]&0xFF != 0xFE)){
+        pkg->isValid = false;
+        return;
+    }
+    pkg->isValid = true;
+    int index = 0;
+    pkg->head[0] = (data[index++] & 0xFF);
+    pkg->head[1] = (data[index++] & 0xFF);
+    pkg->length = (unsigned int)(data[index++] & 0xFF);
+    for(int i=0;i<3;i++){
+        pkg->data[i] = (data[index++] & 0xFF);
+    }
+    pkg->checksum = -1;
+    pkg->timestamp = QDateTime::currentDateTime();
 }
 void MyProtoParseThread::parseFunction2(QByteArray &data,UartDataPackage *pkg)
 {

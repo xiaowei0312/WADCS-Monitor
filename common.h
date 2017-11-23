@@ -9,6 +9,7 @@ struct UartDataPackage{
     QDateTime timestamp;        //timestamp
     unsigned int length;    //length
     unsigned int checksum;  //checksum
+    bool isValid;           //包是否有效? 根据包头 + 校验和确定包是否有效
 };
 
 #endif // COMMON_H

@@ -6,7 +6,9 @@ StringUtil::StringUtil()
 
 bool StringUtil::validHexStr(QString text){
     int pos = 0;
-    QRegExpValidator hexReg(QRegExp("^([0-9A-Fa-f]{2}[ ]+)+([0-9A-Fa-f]{2}[ ]*)$"),NULL);
+    text += " ";
+    //QRegExpValidator hexReg(QRegExp("([0-9A-Fa-f]{2}[ ]+)+([0-9A-Fa-f]{2}[ ]*)?"),NULL);
+    QRegExpValidator hexReg(QRegExp("([0-9A-Fa-f]{2}[ ]+)+"),NULL);
     if(hexReg.validate(text,pos) == QValidator::Acceptable) 
         return true;
     return false;

@@ -26,6 +26,7 @@ protected:
 private:
     Ui::MainWindow *ui;
     
+    //串口枚举相关变量
     wchar_t subkey[80];          
     wchar_t keyname[256]; //键名数组        
     char keyvalue[256];  //键值数组         
@@ -33,65 +34,60 @@ private:
     DWORD keysize,type,valuesize;         
     HKEY hKey; 
     
+    //串口配置参数相关变量
     QList<QString> uartPortList;
     QList<QString> buadrateList;
     QList<QString> databitList;
     QList<QString> stopbitList;
+    
+    //串口操作相关变量
     MySerialPort *mySerialPort;
     QByteArray hasReceivedData;
-    QList<UartDataPackage> hasParsedData; 
+    QByteArray unParsedData;
+    QList<UartDataPackage> hasParsedData;
     
+    //串口"定时发送"定时器
     QTimer *sendTimer;
 private:
-    QTimer dataTimer;
-    void customPlotInit();
-    void setupRealtimeDataDemo(QCustomPlot *customPlot);
-private slots:
-    void realtimeDataSlot();
-    void titleDoubleClick(QMouseEvent *event);
-    void axisLabelDoubleClick(QCPAxis* axis, QCPAxis::SelectablePart part);
-    void legendDoubleClick(QCPLegend* legend, QCPAbstractLegendItem* item);
-    void selectionChanged();
-    void mousePress();
-    void mouseWheel();
-    void addRandomGraph();
-    void removeSelectedGraph();
-    void removeAllGraphs();
-    void contextMenuRequest(QPoint pos);
-    void moveLegend();
-    void graphClicked(QCPAbstractPlottable *plottable, int dataIndex);
-private:
+    //ui初始化
     void uartSettingsInit();
     void uartEnumation();
     void initWidgets();
     void appendStringToPlainText(QString data);
     QString getComm(int index,QString key);
     
+    //串口操作
     bool uartOpen();
     void uartClose();
     void uartSendData(QString data,bool sendHex, bool sendNewLine);
     void uartSendFile(QString filePath,bool sendHex, bool sendNewLine);
+    
+    //customPlot操作
+    void customPlotInit();
+    void setupRealtimeDataDemo(QCustomPlot *customPlot);
 public slots:
+    //串口操作相关槽函数
     void uartOnOpen();
     void uartOnSettingMore();
     void uartOnSend();
     void uartOnSendChooseFile();
     void uartOnRcvClear();
-    void uartOnRcvStop();
     void uartOnRcvAddTimestamp(int state);
     void uartOnRcvHexDisplay(int state);
     void uartOnRcvSaveToFile(int state);
     void uartOnSendHex(int state);
-    void uartOnSendNewLine(int state);
     void uartOnSendTimely(int state);
-    void uartOnSendDtr(int state);
-    void uartOnSendRts(int state);
-    void uartRcvOnStatusChanged(bool checked);
-    void wavOnStatusChanged(bool checked);
     void uartOnSendTimeChanged();
     void sendTimerTimeout();
     void uartOnDataReceived(const QByteArray &);
     void uartOnDataParsed(const UartDataPackage &parsePkg);
+    
+    //customplot相关槽函数
+    void selectionChanged();
+    void mousePress();
+    void mouseWheel();
+    void moveLegend();
+    void graphClicked(QCPAbstractPlottable *plottable, int dataIndex);
 };
 
 #endif // MAINWINDOW_H

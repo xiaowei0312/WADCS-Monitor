@@ -1,4 +1,5 @@
 #include "myreceivethread.h"
+#include <QDebug>
 
 MyReceiveThread::MyReceiveThread(QextSerialPort &adrPort) : port(adrPort)
 {
