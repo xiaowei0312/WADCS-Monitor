@@ -23,13 +23,13 @@ QByteArray StringUtil::convertHexStringToByteArray(QString hexStr)
 
 //Params: QByteArray(0xFF 0x1A 0x01 0x02 0x03)
 //Return: FF 1A 01 02 03
-QString StringUtil::convertByteArrayToHexString(QByteArray byteArray)
+QString StringUtil::convertByteArrayToHexString(const QByteArray &byteArray)
 {
     QString str;
-    byteArray = byteArray.toHex();
-    for(int i=0;i<byteArray.length();i+=2){
-        str.append(byteArray.at(i));
-        str.append(byteArray.at(i+1));
+    QByteArray hexByteArray = byteArray.toHex();
+    for(int i=0;i<hexByteArray.length();i+=2){
+        str.append(hexByteArray.at(i));
+        str.append(hexByteArray.at(i+1));
         str.append(' ');
     }
     //return str.left(str.length()-1);

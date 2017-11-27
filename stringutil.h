@@ -12,7 +12,7 @@ public:
     StringUtil();
     static bool validHexStr(QString text);
     static QByteArray convertHexStringToByteArray(QString hexStr);
-    static QString convertByteArrayToHexString(QByteArray byteArray);
+    static QString convertByteArrayToHexString(const QByteArray &byteArray);
 };
 
 #endif // STRINGUTIL_H

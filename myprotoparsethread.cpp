@@ -1,11 +1,13 @@
 #include "myprotoparsethread.h"
+#include "myserialport.h"
 #include <QDebug>
 
-MyProtoParseThread::MyProtoParseThread(QextSerialPort &adrPort): port(adrPort)
+MyProtoParseThread::MyProtoParseThread(QextSerialPort &adrPort,MySerialPort *mySerialPort)
+    : port(adrPort),mySerialPort(mySerialPort)
 {
-    dataToParse.clear();
     stopped = false;
-    parseFunctionIndex = 0; //缺省使用0号解析函数
+    currentParsePos = 0;
+    dataToParsed.clear();
 }
 
 MyProtoParseThread::~MyProtoParseThread()
@@ -17,45 +19,110 @@ MyProtoParseThread::~MyProtoParseThread()
     }
 }
 
-void MyProtoParseThread::setParseFunction(int index)
-{
-    parseFunctionIndex = index;
-}
-
-void MyProtoParseThread::setParseFunctionCmd(QString &cmd)
-{
-    parseFunctionCmd = cmd;
-}
-
-// Add the data to the Send Queue
-void MyProtoParseThread::addDataToParse(const QByteArray &dataToAdd)
-{
-    QMutexLocker locker(&mutexParse);
-    dataToParse.enqueue(dataToAdd);
-    if (!isRunning())
-        start();
-}
 // Stop the sending operation
 void MyProtoParseThread::stopParsing()
 {
     stopped = true;
 }
-// Thread Send Loop
+
+void MyProtoParseThread::addDataToParsed(const QByteArray &data)
+{
+    QMutexLocker locker(&mutexParse);
+    dataToParsed.append(data);
+}
+
+/*
+ * struct UartProtoConfig{
+    int headBytes;          //协议头字节个数
+    int tailBytes;          //协议尾字节个数
+    int length;             //协议长度字节个数
+};
+ */
 void MyProtoParseThread::run()
 {
     QByteArray byteArray;
+    const UartProtoConfig &config = mySerialPort->getUartProtoConfig();
     forever
-    {
+    {   
+        //1. 获取要解析的数据
         mutexParse.lock();
-        if (dataToParse.isEmpty() || stopped)
+        
+        //1.1 判断是否有数据需要解析
+        if(currentParsePos >= dataToParsed.length() || stopped) 
         {
             mutexParse.unlock();
             stopped = false;
             break;
         }
-        byteArray = dataToParse.dequeue();
+        
+        //1.2 获取需要解析的数据
+        byteArray = dataToParsed.mid(currentParsePos);
+        
+        //1.3 判断是否需要解析
+        if(!config.needParsed) 
+        {
+            currentParsePos += byteArray.length();
+            emit dataParsed(byteArray);
+            mutexParse.unlock();
+            break;
+        }
+        
+        //1.4 计算头部
+        qDebug("parsePos: %d\tlength: %d,%d",currentParsePos,dataToParsed.length(),byteArray.length());
+        if(config.fixedHead.length()>0)
+        {
+            if(byteArray.length() < config.fixedHead.length() || stopped)   //数据长度 < 协议头长度
+            {
+                stopped = false;
+                mutexParse.unlock();
+                break;
+            }
+            if(!byteArray.startsWith(config.fixedHead))     //数据头 和 协议头 不一致         
+            {
+                currentParsePos++;
+                mutexParse.unlock();
+                continue;
+            }
+        }
+        
+        //1.5 截取包长
+        int packageLength = config.fixedLength;
+        if(config.fixedLength <=0 ) //非固定长度协议
+        {
+            int baseLength = config.fixedHead.length() + config.fixedTail.length() 
+                    + config.checksumBytes + config.lengthBytes;            
+            if ((byteArray.length() < baseLength) || stopped)   //数据长度 < 协议基本长度（不包括数据）
+            {
+                stopped = false;
+                mutexParse.unlock();
+                break;
+            }
+            packageLength = baseLength + dataToParsed[currentParsePos + config.fixedHead.length()];
+        }
+        if(byteArray.length() < packageLength)          //数据长度 < 协议长度（包括数据）
+        {
+            stopped = false;
+            mutexParse.unlock();
+            break;
+        }
+        byteArray = dataToParsed.mid(currentParsePos,packageLength);
+        
+        //1.6 计算尾部
+        if(config.fixedTail.length()>0)
+        {
+            if(!byteArray.endsWith(config.fixedTail))            //数据尾 和 协议尾 不一致    
+            {
+                currentParsePos++;
+                mutexParse.unlock();
+                continue;
+            }
+        }
+        //1.7 计算校验和
+        //Fixed Me
+        currentParsePos += packageLength;
         mutexParse.unlock();
         
+        //2. 解析协议
         UartDataPackage pkg;
         parseData(byteArray,&pkg);
         emit dataParsed(pkg);
@@ -64,70 +131,20 @@ void MyProtoParseThread::run()
 
 void MyProtoParseThread::parseData(QByteArray &data,UartDataPackage *pkg)
 {
-    switch(parseFunctionIndex)
-    {
-    case -1:    //调用外部命令
-        parseFunctionByExternalPlugin(data,pkg);
-        break;
-    case 0:     //调用0号解析函数
-        parseFunction0(data,pkg);
-        break;  
-    case 1:     //调用1号解析函数
-        parseFunction1(data,pkg);
-        break;
-    case 2:     //调用1号解析函数
-        parseFunction2(data,pkg);
-        break;
-    }
+    pkg->totalLength = data.length();
+    //const UartProtoConfig &config = mySerialPort->getUartProtoConfig();
+    parseFunction1(data,pkg);
 }
 
-void MyProtoParseThread::parseFunctionByExternalPlugin(QByteArray &data, UartDataPackage *pkg)
-{
-    
-}
-void MyProtoParseThread::parseFunction0(QByteArray &data,UartDataPackage *pkg)
-{
-    //pkg->head = pkg->tail = NULL;
-    pkg->head.clear();
-    pkg->tail.clear();
-    pkg->data = data;
-    pkg->length = data.length();
-    pkg->checksum = -1;
-    pkg->timestamp = QDateTime::currentDateTime();
-    pkg->isValid = true;
-}
-//void MyProtoParseThread::parseFunction0(QByteArray &data,UartDataPackage *pkg)
-//{
-//    //pkg->head = pkg->tail = NULL;
-//    pkg->head.clear();
-//    pkg->tail.clear();
-//    pkg->data = data;
-//    pkg->length = data.length();
-//    pkg->checksum = -1;
-//    pkg->timestamp = QDateTime::currentDateTime();
-//    pkg->isValid = true;
-//}
 //FFFE03A0B0C0
 void MyProtoParseThread::parseFunction1(QByteArray &data,UartDataPackage *pkg)
 {
-    qDebug() << data.length();
-    qDebug("%02x,%02x",data[0] & 0xFF,data[1]);
-    if((data.length() != 6) || (data[0]&0xFF != 0xFF) || (data[1]&0xFF != 0xFE)){
-        pkg->isValid = false;
-        return;
-    }
-    pkg->isValid = true;
-    int index = 0;
-    pkg->head[0] = (data[index++] & 0xFF);
-    pkg->head[1] = (data[index++] & 0xFF);
-    pkg->length = (unsigned int)(data[index++] & 0xFF);
-    for(int i=0;i<3;i++){
-        pkg->data[i] = (data[index++] & 0xFF);
-    }
+    const UartProtoConfig &config = mySerialPort->getUartProtoConfig();
+    pkg->head = config.fixedHead;
+    pkg->tail = config.fixedTail;
+    pkg->length = (unsigned int)(data[config.fixedHead.length()] & 0xFF);
+    pkg->data = data.mid(pkg->head.length()+1,pkg->length);
     pkg->checksum = -1;
     pkg->timestamp = QDateTime::currentDateTime();
-}
-void MyProtoParseThread::parseFunction2(QByteArray &data,UartDataPackage *pkg)
-{
-    
+    pkg->isValid = true;
 }

@@ -4,11 +4,12 @@
 #include <QThread>
 #include "qextserialport.h"
 
+class MySerialPort;
 class MyReceiveThread : public QThread
 {
     Q_OBJECT
 public:
-    MyReceiveThread(QextSerialPort &adrPort);
+    MyReceiveThread(QextSerialPort &adrPort,MySerialPort *mySerialPort);
     ~MyReceiveThread();
     void stopReceiving();
 protected:
@@ -17,6 +18,7 @@ signals:
     void dataReceived(const QByteArray &dataReceived);
 private :
     QextSerialPort &port;
+    MySerialPort *mySerialPort;
     QMutex mutexReceive;
     bool stopped;
 };

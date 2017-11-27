@@ -5,21 +5,23 @@
 #include <QQueue>
 #include "qextserialport.h"
 
+class MySerialPort;
 class MySendThread : public QThread
 {
     Q_OBJECT
 public:
-    MySendThread(QextSerialPort &adrPort);
+    MySendThread(QextSerialPort &adrPort,MySerialPort *mySerialPort);
     ~MySendThread();
-    void addDataToSend(const QByteArray &dataToAdd);
     void stopSending();
+    void addDataToSend(const QByteArray &data);
 protected:
     void run();
 private:
     QextSerialPort &port;
-    QQueue<QByteArray> dataToSend;
+    MySerialPort *mySerialPort;
     QMutex mutexSend;
     bool stopped;
+    QQueue<QByteArray> dataToSend;
 };
 
 #endif // MYSENDTHREAD_H

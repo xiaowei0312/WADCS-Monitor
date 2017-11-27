@@ -42,8 +42,6 @@ private:
     
     //串口操作相关变量
     MySerialPort *mySerialPort;
-    QByteArray hasReceivedData;
-    QByteArray unParsedData;
     QList<UartDataPackage> hasParsedData;
     
     //串口"定时发送"定时器
@@ -63,6 +61,7 @@ private:
     void uartSendFile(QString filePath,bool sendHex, bool sendNewLine);
     
     //customPlot操作
+    int key;
     void customPlotInit();
     void setupRealtimeDataDemo(QCustomPlot *customPlot);
 public slots:
@@ -81,6 +80,7 @@ public slots:
     void sendTimerTimeout();
     void uartOnDataReceived(const QByteArray &);
     void uartOnDataParsed(const UartDataPackage &parsePkg);
+    void uartOnDataParsed(const QByteArray &data);
     
     //customplot相关槽函数
     void selectionChanged();
@@ -88,6 +88,7 @@ public slots:
     void mouseWheel();
     void moveLegend();
     void graphClicked(QCPAbstractPlottable *plottable, int dataIndex);
+    void customPlotReset();
 };
 
 #endif // MAINWINDOW_H

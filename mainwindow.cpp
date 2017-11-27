@@ -9,6 +9,7 @@
 
 void MainWindow::customPlotInit()
 {
+    key = 0;
     srand(QDateTime::currentDateTime().toTime_t());
     ui->customPlot->setInteractions(QCP::iRangeDrag | QCP::iRangeZoom | QCP::iSelectAxes |
                                     QCP::iSelectLegend | QCP::iSelectPlottables);
@@ -42,9 +43,9 @@ void MainWindow::setupRealtimeDataDemo(QCustomPlot *customPlot)
     customPlot->graph(1)->setScatterStyle(QCPScatterStyle(QCPScatterStyle::ssDisc,6));
     customPlot->graph(2)->setScatterStyle(QCPScatterStyle(QCPScatterStyle::ssDisc,6));
     
-//    QSharedPointer<QCPAxisTickerTime> timeTicker(new QCPAxisTickerTime);
-//    timeTicker->setTimeFormat("%m:%s.%z");
-//    //timeTicker->setFieldWidth(QCPAxisTickerTime::tuMilliseconds,100);
+    //QSharedPointer<QCPAxisTickerTime> timeTicker(new QCPAxisTickerTime);
+    //timeTicker->setTimeFormat("%m:%s.%z");
+    //timeTicker->setFieldWidth(QCPAxisTickerTime::tuMilliseconds,100);
 //    timeTicker->setTickStepStrategy( QCPAxisTicker::tssReadability);
 //    //timeTicker->setTickStepStrategy( QCPAxisTicker::tssMeetTickCount);
 //    customPlot->xAxis->setTicker(timeTicker);
@@ -127,6 +128,16 @@ void MainWindow::graphClicked(QCPAbstractPlottable *plottable, int dataIndex)
     ui->statusBar->showMessage(message, 2500);
 }
 
+void MainWindow::customPlotReset()
+{
+    ui->customPlot->graph(0)->setData(QVector<double>(),QVector<double>());
+    ui->customPlot->graph(1)->setData(QVector<double>(),QVector<double>());
+    ui->customPlot->graph(2)->setData(QVector<double>(),QVector<double>());
+    ui->customPlot->xAxis->setRange(0,255);
+    ui->customPlot->yAxis->setRange(0,255);
+    ui->customPlot->replot();
+}
+
 
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
@@ -153,6 +164,8 @@ MainWindow::MainWindow(QWidget *parent) :
     
     connect(mySerialPort,SIGNAL(dataReceived(const QByteArray &)),this,SLOT(uartOnDataReceived(const QByteArray &)));
     connect(mySerialPort,SIGNAL(dataParsed(const UartDataPackage &)),this,SLOT(uartOnDataParsed(const UartDataPackage &)));            
+    connect(mySerialPort,SIGNAL(dataParsed(const QByteArray &)),this,SLOT(uartOnDataParsed(const QByteArray &)));            
+    
     //bind the uart signals
     connect(ui->btn_uart_setting_open,SIGNAL(clicked()),this,SLOT(uartOnOpen()));
     connect(ui->btn_uart_setting_more,SIGNAL(clicked()),this,SLOT(uartOnSettingMore()));
@@ -194,6 +207,7 @@ void MainWindow::initWidgets()
 {
     //    ui->btn_uart_send->setEnabled(false);
     //    ui->btn_uart_send_choose_file->setEnabled(false);
+    ui->checkbox_uart_rcv_hex_display->setChecked(true);
     ui->edit_uart_send_timely->setValidator(
                 new QRegExpValidator(
                     QRegExp("^([1-9]\\d{0,15}|0)$"),this));
@@ -354,7 +368,10 @@ void MainWindow::uartClose(){
     ui->btn_uart_setting_open->setIcon(QIcon(":/images/uart-state-off.png"));
 }
 bool MainWindow::uartOpen(){
-    int currentPort = ui->combo_uart_setting_serail_no->currentIndex();
+    //获取串口相关参数
+    int currentPort;
+    if((currentPort = ui->combo_uart_setting_serail_no->currentIndex())<0)
+        return false;
     int currentBardrate = ui->combo_uart_setting_burdrate->currentIndex();
     int currentDataBit = ui->combo_uart_setting_databit->currentIndex();
     int currentStopBit = ui->combo_uart_setting_stopbit->currentIndex();
@@ -362,20 +379,35 @@ bool MainWindow::uartOpen(){
     int currentFlowControl = 0;
     int currentTimeout = 10;//ms
     
-    bool success = mySerialPort->open(uartPortList[currentPort],
+    //打开串口
+    if(!mySerialPort->open(uartPortList[currentPort],
                                       (BaudRateType)currentBardrate,(DataBitsType)currentDataBit,
                                       (ParityType)currentParity,(StopBitsType)currentStopBit,
-                                      (FlowType)currentFlowControl,0,currentTimeout);
-    if(!success){
-        QMessageBox::critical(this,QString::fromLocal8Bit("WADCS-Monitor"),
-                              QString::fromLocal8Bit("打开串口失败，串口被其他程序占用或者没有相关权限."));
+                                      (FlowType)currentFlowControl,0,currentTimeout))
+    {
+        QMessageBox::critical(this,
+                QString::fromLocal8Bit("WADCS-Monitor"),
+                QString::fromLocal8Bit("打开串口失败，串口被其他程序占用或者没有相关权限."));
         return false;
     }
+
+    //设置串口解析协议
+    UartProtoConfig config;
+    config.needParsed = true;
+    config.fixedLength = -1;
+    config.fixedHead = QByteArray::fromHex(QByteArray("FFFE"));
+    config.fixedTail.clear();
+    config.lengthBytes = 1;
+    config.checksumBytes = 0;
+    mySerialPort->setUartProtoConfig(config); 
+
+    //设置串口相关功能（发送、接收、解析）
     mySerialPort->enableSending();
     mySerialPort->enableReceiving();
     mySerialPort->enableParsing();
     mySerialPort->receiveData();
     
+    //设置界面显示
     ui->btn_uart_setting_open->setText(QString::fromLocal8Bit("关闭串口"));
     ui->btn_uart_setting_open->setIcon(QIcon(":/images/uart-state-on.png"));
     return true;
@@ -468,21 +500,19 @@ void MainWindow::uartOnSettingMore(){
 }
 
 void MainWindow::uartOnRcvClear(){
+    customPlotReset();
     ui->textbrowser_uart_receive->clear();
-    ui->customPlot->graph(0)->setData(QVector<double>(),QVector<double>());
-    ui->customPlot->graph(1)->setData(QVector<double>(),QVector<double>());
-    ui->customPlot->graph(2)->setData(QVector<double>(),QVector<double>());
-    ui->customPlot->replot();
-    
-    hasReceivedData.clear();
+    mySerialPort->clearRecvBuffer();
+    this->key = 0;
 }
 void MainWindow::uartOnRcvAddTimestamp(int state){}
 void MainWindow::uartOnRcvHexDisplay(int state){
     QString data;
+    const QByteArray &receiveBuffer = mySerialPort->receiveBuffer();
     if(state){  //checked
-        data = StringUtil::convertByteArrayToHexString(hasReceivedData);
+        data = StringUtil::convertByteArrayToHexString(receiveBuffer);
     }else{
-        data = hasReceivedData;
+        data = receiveBuffer;
     }
     ui->textbrowser_uart_receive->clear();
     appendStringToPlainText(data);
@@ -507,86 +537,68 @@ void MainWindow::appendStringToPlainText(QString text)
 
 void MainWindow::uartOnDataReceived(const QByteArray &data){
     QString text;
-    hasReceivedData.append(data);
-    unParsedData.append(data);
     if(ui->checkbox_uart_rcv_hex_display->checkState()){
         text = StringUtil::convertByteArrayToHexString(data);
     }else{
         text = data;
     }
     appendStringToPlainText(text);
-    mySerialPort->parseData(data);   //解析数据
-    //mySerialPort->parseData(unParsedData);  //解析数据
 }
-
-//void MainWindow::uartOnDataParsed(const UartDataPackage &parsePkg)
-//{
-//    if(!parsePkg.isValid){   //无效包，丢弃
-//        qDebug("%s","无效包，丢弃");
-//        return;
-//    }
-////    QTime now = QTime::currentTime();
-////    qDebug("%d.%d\thead: %02x%02x   length: %02x    data: %02x%02x%02x     valid: %s",
-////           now.second(),now.msec(),
-////           parsePkg.head[0] & 0xFF,parsePkg.head[1] & 0xFF,
-////            parsePkg.length & 0xFF,
-////            parsePkg.data[0] & 0xFF,parsePkg.data[1] & 0xFF,parsePkg.data[2] & 0xFF,
-////            parsePkg.isValid ? "有效" : "无效");
-    
-//    double displaySec = 8;
-//    static QTime time(QTime::currentTime());
-//    // calculate two new data points:
-//    double key = time.elapsed()/1000.0; // time elapsed since start of demo, in seconds
-    
-//    // add data to lines:
-//    for(int i=0;i<parsePkg.data.length();i++){
-//        ui->customPlot->graph(0)->addData(key, (unsigned int)(parsePkg.data[i] & 0xFF));
-//    }
-////    ui->customPlot->graph(1)->addData(key, (unsigned int)(parsePkg.data[1] & 0xFF));
-////    ui->customPlot->graph(2)->addData(key, (unsigned int)(parsePkg.data[2] & 0xFF));
-//    ui->customPlot->xAxis->setRangeLower(key < displaySec ? 0 : key-displaySec);  //左边开始，大于8s自动平移
-//    ui->customPlot->xAxis->setRangeUpper(key < displaySec ? displaySec : key);
-//    ui->customPlot->replot();
-    
-//    // calculate frames per second:
-//    static double lastFpsKey;
-//    static int frameCount;
-//    ++frameCount;
-//    if (key-lastFpsKey > 2) // average fps over 2 seconds
-//    {
-//        ui->statusBar->showMessage(
-//                    QString("%1 FPS, Total Data points: %2")
-//                    .arg(frameCount/(key-lastFpsKey), 0, 'f', 0)
-//                    .arg(ui->customPlot->graph(0)->data()->size()+ui->customPlot->graph(1)->data()->size())
-//                    , 0);
-//        lastFpsKey = key;
-//        frameCount = 0;
-//        //this->dataTimer.stop();
-//        static int totalSec = 0;
-//        totalSec += 2;
-//    }
-//}
-
 
 void MainWindow::uartOnDataParsed(const UartDataPackage &parsePkg)
 {
+     int display = 255;
     if(!parsePkg.isValid){   //无效包，丢弃
         qDebug("%s","无效包，丢弃");
         return;
     }
+    QTime now = QTime::currentTime();
+    qDebug("%d.%d\thead: %02x%02x   length: %02x    data: %02x%02x%02x     valid: %s",
+           now.second(),now.msec(),
+           parsePkg.head[0] & 0xFF,parsePkg.head[1] & 0xFF,
+            parsePkg.length & 0xFF,
+            parsePkg.data[0] & 0xFF,parsePkg.data[1] & 0xFF,parsePkg.data[2] & 0xFF,
+            parsePkg.isValid ? "有效" : "无效");
     
-    double displaySec = 256;
-    static QTime time(QTime::currentTime());
-    // calculate two new data points:
-    double key = time.elapsed()/1000.0; // time elapsed since start of demo, in seconds
+//    double displaySec = 8;
+//    static QTime time(QTime::currentTime());
+//    // calculate two new data points:
+//    double key1 = time.elapsed()/1000.0; // time elapsed since start of demo, in seconds
     
     // add data to lines:
     for(int i=0;i<parsePkg.data.length();i++){
-        ui->customPlot->graph(0)->addData(i, (unsigned int)(parsePkg.data[i] & 0xFF));
+        ui->customPlot->graph(i)->addData(key++, (unsigned int)(parsePkg.data[i] & 0xFF));
     }
-//    ui->customPlot->graph(1)->addData(key, (unsigned int)(parsePkg.data[1] & 0xFF));
-//    ui->customPlot->graph(2)->addData(key, (unsigned int)(parsePkg.data[2] & 0xFF));
-//    ui->customPlot->xAxis->setRangeLower(key < displaySec ? 0 : key-displaySec);  //左边开始，大于8s自动平移
-//    ui->customPlot->xAxis->setRangeUpper(key < displaySec ? displaySec : key);
+    ui->customPlot->xAxis->setRangeLower(key < display ? 0 : key-display); 
+    ui->customPlot->xAxis->setRangeUpper(key < display ? display : key);
+    ui->customPlot->replot();
+    
+    // calculate frames per second:
+    static double lastFpsKey;
+    static int frameCount;
+    ++frameCount;
+    if (key-lastFpsKey > 2) // average fps over 2 seconds
+    {
+        ui->statusBar->showMessage(
+                    QString("%1 FPS, Total Data points: %2")
+                    .arg(frameCount/(key-lastFpsKey), 0, 'f', 0)
+                    .arg(ui->customPlot->graph(0)->data()->size()+ui->customPlot->graph(1)->data()->size())
+                    , 0);
+        lastFpsKey = key;
+        frameCount = 0;
+        //this->dataTimer.stop();
+        static int totalSec = 0;
+        totalSec += 2;
+    }
+}
+
+void MainWindow::uartOnDataParsed(const QByteArray &data)
+{
+    int display = 255;
+    for(int i=0;i<data.length();i++){
+        ui->customPlot->graph(0)->addData(key++, (unsigned int)(data[i] & 0xFF));
+        ui->customPlot->xAxis->setRangeLower(key < display ? 0 : key-display); 
+        ui->customPlot->xAxis->setRangeUpper(key < display ? display : key);
+    }
     ui->customPlot->replot();
 }

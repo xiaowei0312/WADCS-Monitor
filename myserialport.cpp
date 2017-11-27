@@ -9,19 +9,19 @@ MySerialPort::MySerialPort(QObject *parent) :
     initPrivateVariable();
 }
 
-MySerialPort::MySerialPort(const QString &name, const BaudRateType baudRate, const DataBitsType dataBits,
-                           const ParityType parity, const StopBitsType stopBits, const FlowType flowControl,
-                           ulong seconds, ulong milliseconds)
-{
-    initPrivateVariable();
-    setPortName(name);
-    setBaudRate(baudRate);
-    setDataBits(dataBits);
-    setParity(parity);
-    setStopBits(stopBits);
-    setFlowControl(flowControl);
-    setTimeout(seconds, milliseconds);
-}
+//MySerialPort::MySerialPort(const QString &name, const BaudRateType baudRate, const DataBitsType dataBits,
+//                           const ParityType parity, const StopBitsType stopBits, const FlowType flowControl,
+//                           ulong seconds, ulong milliseconds)
+//{
+//    initPrivateVariable();
+//    setPortName(name);
+//    setBaudRate(baudRate);
+//    setDataBits(dataBits);
+//    setParity(parity);
+//    setStopBits(stopBits);
+//    setFlowControl(flowControl);
+//    setTimeout(seconds, milliseconds);
+//}
 
 MySerialPort::~MySerialPort()
 {
@@ -44,11 +44,51 @@ MySerialPort::~MySerialPort()
         port.close();
 }
 
+QByteArray MySerialPort::receiveBuffer()
+{
+    QMutexLocker locker(&mutexSerialPort);
+    return this->hasReceivedData;
+}
+
+void MySerialPort::clearRecvBuffer()
+{
+    QMutexLocker locker(&mutexSerialPort);
+    this->hasReceivedData.clear();
+}
+
+void MySerialPort::pushDataToRecvBuffer(const QByteArray &data)
+{
+    QMutexLocker locker(&mutexSerialPort);
+    this->hasReceivedData.append(data);
+}
+
+void MySerialPort::setUartProtoConfig(bool needParsed,int fixedLength,QByteArray fixedHead,QByteArray fixedTail, 
+                int lengthbytes,int checksumbytes)
+{
+    config.needParsed = needParsed;
+    config.fixedLength = fixedLength;
+    config.lengthBytes = lengthbytes;
+    config.checksumBytes = checksumbytes;
+    config.fixedHead = fixedHead;
+    config.fixedTail = fixedTail;
+}
+
+void MySerialPort::setUartProtoConfig(const UartProtoConfig &config)
+{
+    this->config = config;
+}
+UartProtoConfig &MySerialPort::getUartProtoConfig()
+{
+    return config;   
+}
+
+
 void MySerialPort::initPrivateVariable()
 {
     // Init private variable
     sendThread = NULL;
     receiveThread = NULL;
+    parseThread = NULL;
     sendingEnable = false;
     receivingEnable = false;
     parsingEnable = false;
@@ -57,6 +97,9 @@ void MySerialPort::initPrivateVariable()
     saveStateReceivingEnable = false;
     saveStateParsingEnable = false;
     saveStateReceiveData = false;
+    saveStateParseData = false;
+    
+    clearRecvBuffer();
 }
 
 // Open the SerialPort
@@ -83,14 +126,16 @@ bool MySerialPort::open(const QString &name, const BaudRateType baudRate, const 
                         ulong seconds, ulong milliseconds)
 {
     setPortName(name);
-    setBaudRate(baudRate);
-    setDataBits(dataBits);
-    setParity(parity);
-    setStopBits(stopBits);
-    setFlowControl(flowControl);
-    setTimeout(seconds, milliseconds);
-    //return open();
-    return port.open(QIODevice::ReadWrite);
+    if(port.open(QIODevice::ReadWrite)){
+        setBaudRate(baudRate);
+        setDataBits(dataBits);
+        setParity(parity);
+        setStopBits(stopBits);
+        setFlowControl(flowControl);
+        setTimeout(seconds, milliseconds);
+        return true;
+    }
+    return false;
 }
 
 // SerialPort is open?
@@ -107,8 +152,8 @@ void MySerialPort::close()
     saveStateReceivingEnable = isReceivingEnable();
     saveStateParsingEnable = isParsingEnable();
     // Close the port
-    disableReceiving();
     disableSending();
+    disableReceiving();
     disableParsing();
     port.close();
     // TODO: should I stop send and receive?
@@ -174,7 +219,7 @@ void MySerialPort::enableSending()
     // If the Sending is not already active AND the sendThead is not initialized
     if (!sendingEnable && !sendThread)
     {
-        sendThread = new MySendThread(port);
+        sendThread = new MySendThread(port,this);
         sendingEnable = true;
     }
 }
@@ -219,7 +264,10 @@ uchar MySerialPort::sendData(const QByteArray &data)
     // check if sending operation is enable
     if (!sendingEnable || !sendThread)
         return 3;
+    
     sendThread->addDataToSend(data);
+    if (!sendThread->isRunning())
+        sendThread->start();
     return 1;
 }
 
@@ -229,9 +277,9 @@ void MySerialPort::enableReceiving()
     // If the Receiving is not already active AND the receiveThead is not initialized
     if (!receivingEnable && !receiveThread)
     {
-        receiveThread = new MyReceiveThread(port);
+        receiveThread = new MyReceiveThread(port,this);
         connect(receiveThread, SIGNAL(dataReceived(const QByteArray &)),
-                this, SIGNAL(dataReceived(const QByteArray &)));
+                this, SLOT(onDataReceived(const QByteArray &)));
         receivingEnable = true;
     }
 }
@@ -292,9 +340,11 @@ void MySerialPort::enableParsing()
     // If the Sending is not already active AND the sendThead is not initialized
     if (!parsingEnable && !parseThread)
     {
-        parseThread = new MyProtoParseThread(port);
+        parseThread = new MyProtoParseThread(port,this);
         connect(parseThread, SIGNAL(dataParsed(const UartDataPackage&)),
-                this, SIGNAL(dataParsed(const UartDataPackage &)));
+                this, SLOT(onDataParsed(const UartDataPackage &)));
+        connect(parseThread, SIGNAL(dataParsed(const QByteArray &)),
+                this, SLOT(onDataParsed(const QByteArray &)));
         parsingEnable = true;
     }
 }
@@ -322,8 +372,8 @@ void MySerialPort::stopParsing()
     // If the SerialPort is currently sending data, stop
     if (parseThread->isRunning())
     {
+        saveStateParseData = false;
         parseThread->stopParsing();
-        //wait(); ??????????
         parseThread->wait();
     }
 }
@@ -339,6 +389,25 @@ uchar MySerialPort::parseData(const QByteArray &data)
     // check if sending operation is enable
     if (!parsingEnable || !parseThread)
         return 3;
-    parseThread->addDataToParse(data);
+    parseThread->addDataToParsed(data);
+    if (!parseThread->isRunning())
+        parseThread->start();
     return 1;
+}
+
+void MySerialPort::onDataReceived(const QByteArray &data)
+{
+    pushDataToRecvBuffer(data);
+    emit dataReceived(data);
+    parseData(data);
+}
+
+void MySerialPort::onDataParsed(const UartDataPackage &parsedPkg)
+{
+    emit dataParsed(parsedPkg);
+}
+
+void MySerialPort::onDataParsed(const QByteArray &data)
+{
+    emit dataParsed(data);
 }

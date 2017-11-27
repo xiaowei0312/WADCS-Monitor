@@ -1,7 +1,9 @@
 #include "myreceivethread.h"
+#include "myserialport.h"
 #include <QDebug>
 
-MyReceiveThread::MyReceiveThread(QextSerialPort &adrPort) : port(adrPort)
+MyReceiveThread::MyReceiveThread(QextSerialPort &adrPort,MySerialPort *mySerialPort) 
+    : port(adrPort),mySerialPort(mySerialPort)
 {
     stopped = false;
 }

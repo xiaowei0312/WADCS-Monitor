@@ -19,8 +19,8 @@ Q_DECLARE_METATYPE(FlowType);
 class MySerialPort : public QObject
 {
     Q_OBJECT
-
 private:
+    QMutex mutexSerialPort;
     QextSerialPort port;
     MySendThread *sendThread;
     MyReceiveThread *receiveThread;
@@ -35,15 +35,27 @@ private:
     bool saveStateReceivingEnable;
     bool saveStateParsingEnable;
     bool saveStateReceiveData;
-    
+    bool saveStateParseData;
+public:
+    QByteArray hasReceivedData;
+    UartProtoConfig config;
 private:
     void initPrivateVariable();
     
 public:
+    QByteArray receiveBuffer();
+    void clearRecvBuffer();
+    void pushDataToRecvBuffer(const QByteArray &data);
+    
+    void setUartProtoConfig(bool needParsed,int fixedLength,QByteArray fixedHead,QByteArray fixedTail,
+            int lengthbytes,int checksumbytes);
+    void setUartProtoConfig(const UartProtoConfig &config);
+    UartProtoConfig &getUartProtoConfig();
+    
     MySerialPort(QObject *parent = 0);
-    MySerialPort(const QString &name, const BaudRateType baudRate, const DataBitsType dataBits,
-                 const ParityType parity, const StopBitsType stopBits, const FlowType flowControl,
-                 ulong seconds = 0, ulong milliseconds = 10);
+//    MySerialPort(const QString &name, const BaudRateType baudRate, const DataBitsType dataBits,
+//                 const ParityType parity, const StopBitsType stopBits, const FlowType flowControl,
+//                 ulong seconds = 0, ulong milliseconds = 10);
     ~MySerialPort();
     
     bool open();
@@ -97,6 +109,11 @@ public:
 signals:
     void dataReceived(const QByteArray &dataReceived);
     void dataParsed(const UartDataPackage &parsedPkg);
+    void dataParsed(const QByteArray &data);
+public slots:
+    void onDataReceived(const QByteArray &dataReceived);
+    void onDataParsed(const UartDataPackage &parsedPkg);
+    void onDataParsed(const QByteArray &data);
 };
 
 #endif // MYSERIALPORT_H

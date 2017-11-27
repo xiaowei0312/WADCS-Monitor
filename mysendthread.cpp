@@ -1,8 +1,9 @@
 #include "mysendthread.h"
+#include "myserialport.h"
 
-MySendThread::MySendThread(QextSerialPort &adrPort): port(adrPort)
+MySendThread::MySendThread(QextSerialPort &adrPort,MySerialPort *mySerialPort)
+    : port(adrPort),mySerialPort(mySerialPort)
 {
-    dataToSend.clear();
     stopped = false;
 }
 
@@ -15,20 +16,19 @@ MySendThread::~MySendThread()
     }
 }
 
-// Add the data to the Send Queue
-void MySendThread::addDataToSend(const QByteArray &dataToAdd)
-{
-    QMutexLocker locker(&mutexSend);
-    for (int i=0; i < dataToAdd.size(); i++)
-        dataToSend.enqueue(QByteArray(1,dataToAdd.at(i)));
-    if (!isRunning())
-        start();
-}
 // Stop the sending operation
 void MySendThread::stopSending()
 {
     stopped = true;
 }
+
+void MySendThread::addDataToSend(const QByteArray &data)
+{
+    QMutexLocker locker(&mutexSend);
+    for(int i=0;i<data.length();i++)
+        dataToSend.enqueue(data);    
+}
+
 // Thread Send Loop
 void MySendThread::run()
 {
