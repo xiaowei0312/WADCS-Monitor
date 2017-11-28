@@ -1,3 +1,4 @@
+#include <QDebug>
 #include "myserialport.h"
 #include "myreceivethread.h"
 #include "mysendthread.h"
@@ -62,20 +63,44 @@ void MySerialPort::pushDataToRecvBuffer(const QByteArray &data)
     this->hasReceivedData.append(data);
 }
 
-void MySerialPort::setUartProtoConfig(bool needParsed,int fixedLength,QByteArray fixedHead,QByteArray fixedTail, 
-                int lengthbytes,int checksumbytes)
+bool MySerialPort::setUartProtoConfig(const UartProtoConfig &config,QString &errorText)
 {
-    config.needParsed = needParsed;
-    config.fixedLength = fixedLength;
-    config.lengthBytes = lengthbytes;
-    config.checksumBytes = checksumbytes;
-    config.fixedHead = fixedHead;
-    config.fixedTail = fixedTail;
+    
+//    qDebug() << this->config.needParsed << ' ' << this->config.isFixedLength << ' '
+//        << config.fixedLength << ' ' << config.fixedHead << ' ' << config.fixedTail << ' ' << config.lengthBytes
+//        << ' ' << config.checksumBytes << ' ' << config.checksum;
+    if(validUartProtoConfig(config,errorText))
+    {
+        this->config = config;
+        return true;
+    }
+    return false;
 }
 
-void MySerialPort::setUartProtoConfig(const UartProtoConfig &config)
+bool MySerialPort::validUartProtoConfig(const UartProtoConfig & config,QString &errorText)
 {
-    this->config = config;
+    if(config.isFixedLength && config.fixedLength == 0)
+    {
+        errorText = QString::fromLocal8Bit("定长协议长度必须大于0");
+        return false;
+    }
+    if(config.isFixedLength && config.lengthBytes>0)
+    {
+        errorText = QString::fromLocal8Bit("定长协议无须指定长度字节");
+        return false;
+    }
+    if(!config.isFixedLength && config.lengthBytes == 0)
+    {
+        errorText = QString::fromLocal8Bit("非定长协议长度字节不能为0");
+        return false;
+    }
+    if(config.isFixedLength && 
+            config.fixedLength < config.fixedHead.length() + config.fixedTail.length() + config.checksumBytes)
+    {
+        errorText = QString::fromLocal8Bit("定长协议长度不能小于[头+尾+校验]字节长度之和");
+        return false;
+    }
+    return true;
 }
 UartProtoConfig &MySerialPort::getUartProtoConfig()
 {
@@ -93,11 +118,14 @@ void MySerialPort::initPrivateVariable()
     receivingEnable = false;
     parsingEnable = false;
     closeCalled = false;
+    
     saveStateSendingEnable = false;
     saveStateReceivingEnable = false;
     saveStateParsingEnable = false;
     saveStateReceiveData = false;
     saveStateParseData = false;
+    
+    config.needParsed = false;
     
     clearRecvBuffer();
 }
@@ -125,7 +153,10 @@ bool MySerialPort::open(const QString &name, const BaudRateType baudRate, const 
                         const ParityType parity, const StopBitsType stopBits, const FlowType flowControl,
                         ulong seconds, ulong milliseconds)
 {
-    setPortName(name);
+    QString portName = name;
+    if(portName.size() > QString("ComX").size())    //处理>10的情况
+        portName = "\\\\.\\" + name;
+    setPortName(portName);
     if(port.open(QIODevice::ReadWrite)){
         setBaudRate(baudRate);
         setDataBits(dataBits);

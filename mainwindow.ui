@@ -6,9 +6,15 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>888</width>
-    <height>539</height>
+    <width>835</width>
+    <height>579</height>
    </rect>
+  </property>
+  <property name="sizePolicy">
+   <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+    <horstretch>0</horstretch>
+    <verstretch>0</verstretch>
+   </sizepolicy>
   </property>
   <property name="windowTitle">
    <string>MainWindow</string>
@@ -76,10 +82,214 @@
     </item>
     <item>
      <widget class="QGroupBox" name="uartProfileBox">
+      <property name="sizePolicy">
+       <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+        <horstretch>0</horstretch>
+        <verstretch>0</verstretch>
+       </sizepolicy>
+      </property>
       <property name="title">
        <string>Profile</string>
       </property>
-      <layout class="QVBoxLayout" name="verticalLayout_7">
+      <layout class="QVBoxLayout" name="verticalLayout_8">
+       <item>
+        <widget class="QGroupBox" name="box_uart_parse">
+         <property name="title">
+          <string>Uart Parsing</string>
+         </property>
+         <property name="checkable">
+          <bool>true</bool>
+         </property>
+         <property name="checked">
+          <bool>false</bool>
+         </property>
+         <layout class="QVBoxLayout" name="verticalLayout_7">
+          <item>
+           <layout class="QHBoxLayout" name="horizontalLayout_3">
+            <item>
+             <layout class="QHBoxLayout" name="horizontalLayout_12">
+              <item>
+               <widget class="QCheckBox" name="checkBox_uart_parse_fixedLength">
+                <property name="text">
+                 <string>定长协议</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QSpinBox" name="edit_uart_parse_fixedLength">
+                <property name="minimum">
+                 <number>0</number>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QToolButton" name="btn_uart_parse_more">
+                <property name="sizePolicy">
+                 <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+                  <horstretch>0</horstretch>
+                  <verstretch>0</verstretch>
+                 </sizepolicy>
+                </property>
+                <property name="minimumSize">
+                 <size>
+                  <width>0</width>
+                  <height>24</height>
+                 </size>
+                </property>
+                <property name="text">
+                 <string>更多</string>
+                </property>
+               </widget>
+              </item>
+             </layout>
+            </item>
+           </layout>
+          </item>
+          <item>
+           <layout class="QHBoxLayout" name="horizontalLayout_16">
+            <item>
+             <layout class="QVBoxLayout" name="verticalLayout_2">
+              <item>
+               <widget class="QLabel" name="label_3">
+                <property name="text">
+                 <string>协议头尾</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QLabel" name="label_7">
+                <property name="text">
+                 <string>长度字节</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QLabel" name="label_4">
+                <property name="text">
+                 <string>校验方式</string>
+                </property>
+               </widget>
+              </item>
+             </layout>
+            </item>
+            <item>
+             <layout class="QVBoxLayout" name="verticalLayout_5">
+              <item>
+               <layout class="QHBoxLayout" name="horizontalLayout_11">
+                <property name="spacing">
+                 <number>6</number>
+                </property>
+                <item>
+                 <widget class="QLineEdit" name="edit_uart_parse_head">
+                  <property name="maximumSize">
+                   <size>
+                    <width>40</width>
+                    <height>16777215</height>
+                   </size>
+                  </property>
+                 </widget>
+                </item>
+                <item>
+                 <widget class="QLabel" name="label_6">
+                  <property name="text">
+                   <string> / </string>
+                  </property>
+                 </widget>
+                </item>
+                <item>
+                 <widget class="QLineEdit" name="edit_uart_parse_tail">
+                  <property name="maximumSize">
+                   <size>
+                    <width>40</width>
+                    <height>16777215</height>
+                   </size>
+                  </property>
+                 </widget>
+                </item>
+               </layout>
+              </item>
+              <item>
+               <layout class="QHBoxLayout" name="horizontalLayout_15">
+                <item>
+                 <widget class="QSpinBox" name="edit_uart_parse_lengthBytes">
+                  <property name="minimumSize">
+                   <size>
+                    <width>35</width>
+                    <height>0</height>
+                   </size>
+                  </property>
+                  <property name="maximumSize">
+                   <size>
+                    <width>35</width>
+                    <height>16777215</height>
+                   </size>
+                  </property>
+                  <property name="minimum">
+                   <number>0</number>
+                  </property>
+                  <property name="maximum">
+                   <number>4</number>
+                  </property>
+                 </widget>
+                </item>
+                <item>
+                 <widget class="QLabel" name="label_8">
+                  <property name="text">
+                   <string> bytes</string>
+                  </property>
+                 </widget>
+                </item>
+               </layout>
+              </item>
+              <item>
+               <layout class="QHBoxLayout" name="horizontalLayout_13">
+                <item>
+                 <widget class="QSpinBox" name="edit_uart_parse_checksum">
+                  <property name="minimumSize">
+                   <size>
+                    <width>35</width>
+                    <height>0</height>
+                   </size>
+                  </property>
+                  <property name="maximumSize">
+                   <size>
+                    <width>35</width>
+                    <height>16777215</height>
+                   </size>
+                  </property>
+                  <property name="maximum">
+                   <number>2</number>
+                  </property>
+                 </widget>
+                </item>
+                <item>
+                 <widget class="QComboBox" name="combo_uart_parse_checksum">
+                  <property name="sizePolicy">
+                   <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+                    <horstretch>0</horstretch>
+                    <verstretch>0</verstretch>
+                   </sizepolicy>
+                  </property>
+                  <property name="maximumSize">
+                   <size>
+                    <width>100000</width>
+                    <height>16777215</height>
+                   </size>
+                  </property>
+                  <property name="editable">
+                   <bool>false</bool>
+                  </property>
+                 </widget>
+                </item>
+               </layout>
+              </item>
+             </layout>
+            </item>
+           </layout>
+          </item>
+         </layout>
+        </widget>
+       </item>
        <item>
         <widget class="QGroupBox" name="box_uart_setting">
          <property name="sizePolicy">
@@ -92,79 +302,81 @@
           <string>Uart Settings</string>
          </property>
          <layout class="QVBoxLayout" name="verticalLayout">
-          <property name="sizeConstraint">
-           <enum>QLayout::SetMinimumSize</enum>
-          </property>
           <item>
            <layout class="QHBoxLayout" name="horizontalLayout">
             <item>
-             <layout class="QVBoxLayout" name="verticalLayout_2">
-              <item>
-               <widget class="QLabel" name="label">
-                <property name="text">
-                 <string>串口号</string>
-                </property>
-               </widget>
-              </item>
-              <item>
-               <widget class="QLabel" name="label_2">
-                <property name="text">
-                 <string>波特率</string>
-                </property>
-               </widget>
-              </item>
-              <item>
-               <widget class="QLabel" name="label_3">
-                <property name="text">
-                 <string>数据位</string>
-                </property>
-               </widget>
-              </item>
-              <item>
-               <widget class="QLabel" name="label_4">
-                <property name="text">
-                 <string>停止位</string>
-                </property>
-               </widget>
-              </item>
-             </layout>
-            </item>
-            <item>
-             <layout class="QVBoxLayout" name="verticalLayout_3">
-              <item>
-               <widget class="QComboBox" name="combo_uart_setting_serail_no"/>
-              </item>
-              <item>
-               <widget class="QComboBox" name="combo_uart_setting_burdrate"/>
-              </item>
-              <item>
-               <widget class="QComboBox" name="combo_uart_setting_databit"/>
-              </item>
-              <item>
-               <widget class="QComboBox" name="combo_uart_setting_stopbit"/>
-              </item>
-             </layout>
-            </item>
-           </layout>
-          </item>
-          <item>
-           <layout class="QHBoxLayout" name="horizontalLayout_3">
-            <item>
-             <widget class="QCheckBox" name="checkbox_uart_setting_dtr">
+             <widget class="QLabel" name="label">
               <property name="text">
-               <string>DTR</string>
+               <string>串口号  </string>
               </property>
              </widget>
             </item>
             <item>
-             <widget class="QCheckBox" name="checkbox_uart_setting_rts">
+             <widget class="QComboBox" name="combo_uart_setting_serail_no">
+              <property name="sizePolicy">
+               <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+                <horstretch>0</horstretch>
+                <verstretch>0</verstretch>
+               </sizepolicy>
+              </property>
+              <property name="editable">
+               <bool>false</bool>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </item>
+          <item>
+           <layout class="QHBoxLayout" name="horizontalLayout_14">
+            <item>
+             <widget class="QLabel" name="label_2">
               <property name="text">
-               <string>RTS</string>
+               <string>波特率  </string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QComboBox" name="combo_uart_setting_burdrate">
+              <property name="sizePolicy">
+               <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+                <horstretch>0</horstretch>
+                <verstretch>0</verstretch>
+               </sizepolicy>
+              </property>
+              <property name="editable">
+               <bool>false</bool>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </item>
+          <item>
+           <layout class="QHBoxLayout" name="horizontalLayout_10">
+            <item>
+             <widget class="QPushButton" name="btn_uart_setting_open">
+              <property name="text">
+               <string>打开串口</string>
+              </property>
+              <property name="icon">
+               <iconset resource="wadcs.qrc">
+                <normaloff>:/images/uart-state-off.png</normaloff>:/images/uart-state-off.png</iconset>
               </property>
              </widget>
             </item>
             <item>
              <widget class="QToolButton" name="btn_uart_setting_more">
+              <property name="sizePolicy">
+               <sizepolicy hsizetype="Fixed" vsizetype="Expanding">
+                <horstretch>0</horstretch>
+                <verstretch>0</verstretch>
+               </sizepolicy>
+              </property>
+              <property name="minimumSize">
+               <size>
+                <width>0</width>
+                <height>24</height>
+               </size>
+              </property>
               <property name="text">
                <string>更多</string>
               </property>
@@ -172,26 +384,15 @@
             </item>
            </layout>
           </item>
-          <item>
-           <widget class="QPushButton" name="btn_uart_setting_open">
-            <property name="text">
-             <string>打开串口</string>
-            </property>
-            <property name="icon">
-             <iconset resource="wadcs.qrc">
-              <normaloff>:/images/uart-state-off.png</normaloff>:/images/uart-state-off.png</iconset>
-            </property>
-           </widget>
-          </item>
          </layout>
         </widget>
        </item>
        <item>
         <widget class="QGroupBox" name="box_uart_rcv">
          <property name="title">
-          <string>Uart Receive</string>
+          <string>Uart Receiving</string>
          </property>
-         <layout class="QVBoxLayout" name="verticalLayout_4">
+         <layout class="QVBoxLayout" name="verticalLayout_3">
           <item>
            <layout class="QHBoxLayout" name="horizontalLayout_9">
             <item>
@@ -201,7 +402,7 @@
               </property>
              </widget>
             </item>
-            <item>
+            <item alignment="Qt::AlignRight">
              <widget class="QCheckBox" name="checkbox_uart_rcv_save_to_file">
               <property name="text">
                <string>存入文件</string>
@@ -211,34 +412,27 @@
            </layout>
           </item>
           <item>
-           <widget class="QCheckBox" name="checkbox_uart_rcv_add_timestamp">
-            <property name="text">
-             <string>加时间戳和分包显示</string>
-            </property>
-           </widget>
-          </item>
-          <item>
            <layout class="QHBoxLayout" name="horizontalLayout_6">
             <item>
-             <widget class="QToolButton" name="btn_uart_rcv_stop">
-              <property name="sizePolicy">
-               <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
-                <horstretch>0</horstretch>
-                <verstretch>0</verstretch>
-               </sizepolicy>
-              </property>
+             <widget class="QCheckBox" name="checkbox_uart_rcv_add_timestamp">
               <property name="text">
-               <string>停止</string>
+               <string>按时间戳分包显示</string>
               </property>
              </widget>
             </item>
             <item>
              <widget class="QToolButton" name="btn_uart_rcv_clear">
               <property name="sizePolicy">
-               <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+               <sizepolicy hsizetype="Fixed" vsizetype="Expanding">
                 <horstretch>0</horstretch>
                 <verstretch>0</verstretch>
                </sizepolicy>
+              </property>
+              <property name="minimumSize">
+               <size>
+                <width>0</width>
+                <height>24</height>
+               </size>
               </property>
               <property name="text">
                <string>清除</string>
@@ -253,22 +447,22 @@
        <item>
         <widget class="QGroupBox" name="box_uart_send">
          <property name="title">
-          <string>Uart Send</string>
+          <string>Uart Sending</string>
          </property>
-         <layout class="QVBoxLayout" name="verticalLayout_5">
+         <layout class="QVBoxLayout" name="verticalLayout_4">
           <item>
            <layout class="QHBoxLayout" name="horizontalLayout_8">
             <item>
-             <widget class="QCheckBox" name="checkbox_uart_send_hex">
+             <widget class="QCheckBox" name="checkbox_uart_send_newline">
               <property name="text">
-               <string>Hex发送</string>
+               <string>发送新行</string>
               </property>
              </widget>
             </item>
-            <item>
-             <widget class="QToolButton" name="btn_uart_send_choose_file">
+            <item alignment="Qt::AlignRight">
+             <widget class="QCheckBox" name="checkbox_uart_send_hex">
               <property name="text">
-               <string>选择文件</string>
+               <string>Hex发送</string>
               </property>
              </widget>
             </item>
@@ -284,29 +478,21 @@
              </widget>
             </item>
             <item>
-             <widget class="QCheckBox" name="checkbox_uart_send_newline">
-              <property name="text">
-               <string>发送新行</string>
-              </property>
-             </widget>
-            </item>
-           </layout>
-          </item>
-          <item>
-           <layout class="QHBoxLayout" name="horizontalLayout_7">
-            <item>
              <widget class="QLineEdit" name="edit_uart_send_timely">
               <property name="minimumSize">
                <size>
-                <width>50</width>
+                <width>40</width>
                 <height>0</height>
                </size>
               </property>
               <property name="maximumSize">
                <size>
-                <width>30</width>
+                <width>25</width>
                 <height>16777215</height>
                </size>
+              </property>
+              <property name="text">
+               <string>1000</string>
               </property>
              </widget>
             </item>
@@ -317,27 +503,37 @@
               </property>
              </widget>
             </item>
-            <item>
-             <spacer name="horizontalSpacer">
-              <property name="orientation">
-               <enum>Qt::Horizontal</enum>
-              </property>
-              <property name="sizeHint" stdset="0">
-               <size>
-                <width>40</width>
-                <height>20</height>
-               </size>
-              </property>
-             </spacer>
-            </item>
            </layout>
           </item>
           <item>
-           <widget class="QPushButton" name="btn_uart_send">
-            <property name="text">
-             <string>发送</string>
-            </property>
-           </widget>
+           <layout class="QHBoxLayout" name="horizontalLayout_7">
+            <item>
+             <widget class="QPushButton" name="btn_uart_send">
+              <property name="text">
+               <string>发送</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QToolButton" name="btn_uart_send_expand">
+              <property name="sizePolicy">
+               <sizepolicy hsizetype="Fixed" vsizetype="Expanding">
+                <horstretch>0</horstretch>
+                <verstretch>0</verstretch>
+               </sizepolicy>
+              </property>
+              <property name="minimumSize">
+               <size>
+                <width>0</width>
+                <height>24</height>
+               </size>
+              </property>
+              <property name="text">
+               <string>扩展</string>
+              </property>
+             </widget>
+            </item>
+           </layout>
           </item>
          </layout>
         </widget>
@@ -352,7 +548,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>888</width>
+     <width>835</width>
      <height>23</height>
     </rect>
    </property>

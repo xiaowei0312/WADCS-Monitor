@@ -4,11 +4,19 @@ StringUtil::StringUtil()
 {
 }
 
-bool StringUtil::validHexStr(QString text){
+bool StringUtil::validHexStrWithSpace(QString text){
     int pos = 0;
     text += " ";
     //QRegExpValidator hexReg(QRegExp("([0-9A-Fa-f]{2}[ ]+)+([0-9A-Fa-f]{2}[ ]*)?"),NULL);
     QRegExpValidator hexReg(QRegExp("([0-9A-Fa-f]{2}[ ]+)+"),NULL);
+    if(hexReg.validate(text,pos) == QValidator::Acceptable) 
+        return true;
+    return false;
+}
+
+bool StringUtil::validHexStrWithNoSpace(QString text){
+    int pos = 0;
+    QRegExpValidator hexReg(QRegExp("([0-9A-Fa-f]{2})+"),NULL);
     if(hexReg.validate(text,pos) == QValidator::Acceptable) 
         return true;
     return false;
@@ -34,4 +42,17 @@ QString StringUtil::convertByteArrayToHexString(const QByteArray &byteArray)
     }
     //return str.left(str.length()-1);
     return str;
+}
+
+//Params: 00 03
+//Return: 3
+
+unsigned int StringUtil::convertByteArrayToInteger(const QByteArray &byteArray)
+{
+    unsigned int ret = 0;
+    for(int i=0;i<byteArray.size();i++)
+    {
+        ret = ret * 16 + (unsigned int)(byteArray[i] & 0xFF);
+    }
+    return ret;
 }

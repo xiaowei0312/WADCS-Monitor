@@ -193,13 +193,11 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(ui->btn_uart_send,SIGNAL(clicked()),this,SLOT(uartOnSend()));
     connect(ui->btn_uart_send_expand,SIGNAL(clicked()),this,SLOT(uartOnSendExpand()));
     
-    //connect(ui->check_uart_parse_enable,SIGNAL(stateChanged(int)),this,SLOT(uartOnParseEnableStateChanged(int)));
     connect(ui->box_uart_parse,SIGNAL(toggled(bool)),this,SLOT(uartOnParseEnableStateChanged(bool)));
     connect(ui->checkBox_uart_parse_fixedLength,SIGNAL(stateChanged(int)),this,SLOT(uartOnParseFixedLengthStateChanged(int)));
     connect(ui->edit_uart_parse_fixedLength,SIGNAL(valueChanged(int)),this,SLOT(uartOnParseFixedLengthValueChanged(int)));
-    connect(ui->edit_uart_parse_head,SIGNAL(editingFinished()),this,SLOT(uartOnParseHeadTextChanged()));
-    connect(ui->edit_uart_parse_tail,SIGNAL(editingFinished()),this,SLOT(uartOnParseTailTextChanged()));
-    connect(ui->edit_uart_parse_lengthBytes,SIGNAL(valueChanged(int)),this,SLOT(uartOnParseLengthBytesValueChanged(int)));
+    connect(ui->edit_uart_parse_head,SIGNAL(textChanged(const QString &)),this,SLOT(uartOnParseHeadTextChanged(const QString &)));
+    connect(ui->edit_uart_parse_tail,SIGNAL(textChanged(const QString &)),this,SLOT(uartOnParseTailTextChanged(const QString &)));
     connect(ui->combo_uart_parse_checksum,SIGNAL(currentIndexChanged(int)),this,SLOT(uartOnParseChecksumIndexChanged(int)));
     connect(ui->edit_uart_parse_checksum,SIGNAL(valueChanged(int)),this,SLOT(uartOnParseChecksumBytesValueChanged(int)));
     connect(ui->btn_uart_parse_more,SIGNAL(clicked()),this,SLOT(uartOnParseMoreBtnClicked()));
@@ -333,18 +331,15 @@ void MainWindow::uartSettingsInit()
 void MainWindow::uartParseInit()
 {
     //串口解析相关
-    //ui->check_uart_parse_enable->setChecked(false);
     ui->box_uart_parse->setChecked(false);
     ui->edit_uart_parse_fixedLength->setEnabled(false);
     
     config.needParsed = false;
-    config.fixedLength = false;
-    config.fixedLength = 0;
+    config.lengthBytes = 1;
+    config.checksumBytes = 1;
+    config.fixedLength = 1;
     config.fixedHead = "";
     config.fixedTail = "";
-    config.lengthBytes = 0;
-    config.checksumBytes = 0;
-    config.checksum = 0;
 }
 
 void MainWindow::disableUartParseWidgets()
@@ -451,15 +446,6 @@ bool MainWindow::uartOpen(){
     if((currentPort = ui->combo_uart_setting_serail_no->currentIndex())<0)
         return false;
 
-    //设置串口解析协议
-    QString error;
-    if(!mySerialPort->setUartProtoConfig(config,error))
-    {
-        QMessageBox::information(this,windowTitle(),error);
-        return false;
-    }
-    disableUartParseWidgets();
-    
     //打开串口
     if(!mySerialPort->open(uartPortList[currentPort],(BaudRateType)currentBuadrate,(DataBitsType)currentDataBit,
                    (ParityType)currentParity,(StopBitsType)currentStopBit,
@@ -470,7 +456,10 @@ bool MainWindow::uartOpen(){
                 QString::fromLocal8Bit("打开串口失败，串口被其他程序占用或者没有相关权限."));
         return false;
     }
-    
+    //设置串口解析协议
+    mySerialPort->setUartProtoConfig(config);
+    disableUartParseWidgets();
+
     //设置串口相关功能（发送、接收、解析）
     mySerialPort->enableSending();
     mySerialPort->enableReceiving();
@@ -559,7 +548,7 @@ void MainWindow::uartSendData(QString data,bool sendAsHex, bool sendNewLine){
     }else{
         if(data.isEmpty())
             return;
-        if(!StringUtil::validHexStrWithSpace(data)){
+        if(!StringUtil::validHexStr(data)){
             QMessageBox::information(this,QString::fromLocal8Bit("WADCS-Monitor"),
                                      QString::fromLocal8Bit("请键入有效Hex字符组合(\"0-9\",\"A-F\",\"a-f\")!\n每两个字符之间空一个空格"));
             return;
@@ -624,11 +613,6 @@ void MainWindow::appendStringToPlainText(QString text)
 
 void MainWindow::uartOnParseEnableStateChanged(bool state)
 {
-    if(state)
-    {
-        QMessageBox::information(this,windowTitle(),
-            QString::fromLocal8Bit("暂时仅支持[十六进制][大端序]【head + length + data + checksum + tail】的协议方式"));    
-    }
     config.needParsed = state;
 }
 
@@ -640,58 +624,25 @@ void MainWindow::uartOnParseMoreBtnClicked()
 void MainWindow::uartOnParseFixedLengthStateChanged(int state)
 {
     if(state){
-        config.isFixedLength = true; 
         ui->edit_uart_parse_fixedLength->setEnabled(true);
-        ui->edit_uart_parse_lengthBytes->setValue(0);
-        ui->edit_uart_parse_lengthBytes->setEnabled(false);
     }else{
-        config.isFixedLength = false;
         ui->edit_uart_parse_fixedLength->setEnabled(false);
-        ui->edit_uart_parse_lengthBytes->setEnabled(true);
     }
 }
 
 void MainWindow::uartOnParseFixedLengthValueChanged(int value)
 {
-    if(value <= 0)
-    {
-        QMessageBox::information(this,windowTitle(),QString::fromLocal8Bit("定长协议长度必须大于0"));
-        return;
-    }
     config.fixedLength = value;
 }
 
-void MainWindow::uartOnParseHeadTextChanged()
+void MainWindow::uartOnParseHeadTextChanged(const QString &text)
 {
-    QString text = ui->edit_uart_parse_head->text();
-    if(text.isEmpty())
-        return;
-    text = text.trimmed();
-    if(!StringUtil::validHexStrWithNoSpace(text))
-    {
-        QMessageBox::information(this,windowTitle(),QString::fromLocal8Bit("协议头只能是十六进制字符串(eg：FFFE)"));
-        return;
-    }
-    config.fixedHead = StringUtil::convertHexStringToByteArray(text);
+    config.fixedHead = text.toLatin1();
 }
 
-void MainWindow::uartOnParseTailTextChanged()
+void MainWindow::uartOnParseTailTextChanged(const QString &text)
 {
-    QString text = ui->edit_uart_parse_tail->text();
-    if(text.isEmpty())
-        return;
-    text = text.trimmed();
-    if(!StringUtil::validHexStrWithNoSpace(text))
-    {
-        QMessageBox::information(this,windowTitle(),QString::fromLocal8Bit("协议尾只能是十六进制字符串(eg：FFFE)"));
-        return;
-    }
-    config.fixedTail = StringUtil::convertHexStringToByteArray(text);
-}
-
-void MainWindow::uartOnParseLengthBytesValueChanged(int value)
-{
-    config.lengthBytes = value;
+    config.fixedTail = text.toLatin1();
 }
 
 void MainWindow::uartOnParseChecksumBytesValueChanged(int value)
@@ -716,12 +667,19 @@ void MainWindow::uartOnDataReceived(const QByteArray &data){
 
 void MainWindow::uartOnDataParsed(const UartDataPackage &parsePkg)
 {
-    int display = 255;
+int display = 255;
     if(!parsePkg.isValid){   //无效包，丢弃
         qDebug("%s","无效包，丢弃");
         return;
     }
     QTime now = QTime::currentTime();
+    qDebug("%d.%d\thead: %02x%02x   length: %02x    data: %02x%02x%02x     valid: %s",
+           now.second(),now.msec(),
+           parsePkg.head[0] & 0xFF,parsePkg.head[1] & 0xFF,
+            parsePkg.length & 0xFF,
+            parsePkg.data[0] & 0xFF,parsePkg.data[1] & 0xFF,parsePkg.data[2] & 0xFF,
+            parsePkg.isValid ? "有效" : "无效");
+    
 //    double displaySec = 8;
 //    static QTime time(QTime::currentTime());
 //    // calculate two new data points:

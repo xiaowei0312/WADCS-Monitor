@@ -1,6 +1,7 @@
 #include "myprotoparsethread.h"
 #include "myserialport.h"
 #include <QDebug>
+#include "stringutil.h"
 
 MyProtoParseThread::MyProtoParseThread(QextSerialPort &adrPort,MySerialPort *mySerialPort)
     : port(adrPort),mySerialPort(mySerialPort)
@@ -84,10 +85,9 @@ void MyProtoParseThread::run()
                 continue;
             }
         }
-        
         //1.5 截取包长
         int packageLength = config.fixedLength;
-        if(config.fixedLength <=0 ) //非固定长度协议
+        if(!config.isFixedLength) //非固定长度协议
         {
             int baseLength = config.fixedHead.length() + config.fixedTail.length() 
                     + config.checksumBytes + config.lengthBytes;            
@@ -97,7 +97,12 @@ void MyProtoParseThread::run()
                 mutexParse.unlock();
                 break;
             }
-            packageLength = baseLength + dataToParsed[currentParsePos + config.fixedHead.length()];
+            packageLength = baseLength;
+            if(config.lengthBytes > 0)
+            {    
+                QByteArray lengthCol = byteArray.mid(config.fixedHead.length(),config.lengthBytes);
+                packageLength = baseLength + StringUtil::convertByteArrayToInteger(lengthCol);
+            }
         }
         if(byteArray.length() < packageLength)          //数据长度 < 协议长度（包括数据）
         {
@@ -106,7 +111,6 @@ void MyProtoParseThread::run()
             break;
         }
         byteArray = dataToParsed.mid(currentParsePos,packageLength);
-        
         //1.6 计算尾部
         if(config.fixedTail.length()>0)
         {
@@ -142,8 +146,15 @@ void MyProtoParseThread::parseFunction1(QByteArray &data,UartDataPackage *pkg)
     const UartProtoConfig &config = mySerialPort->getUartProtoConfig();
     pkg->head = config.fixedHead;
     pkg->tail = config.fixedTail;
-    pkg->length = (unsigned int)(data[config.fixedHead.length()] & 0xFF);
-    pkg->data = data.mid(pkg->head.length()+1,pkg->length);
+    if(config.isFixedLength)
+        pkg->length = config.fixedLength - config.fixedHead.length() - config.fixedTail.length() - config.checksumBytes
+                -config.lengthBytes;    //  lengthBytes应该为0
+    else
+    {
+        QByteArray lengthCol = data.mid(config.fixedHead.length(),config.lengthBytes);
+        pkg->length = StringUtil::convertByteArrayToInteger(lengthCol);
+    }
+    pkg->data = data.mid(pkg->head.length()+config.lengthBytes,pkg->length);
     pkg->checksum = -1;
     pkg->timestamp = QDateTime::currentDateTime();
     pkg->isValid = true;

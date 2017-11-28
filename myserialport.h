@@ -47,9 +47,8 @@ public:
     void clearRecvBuffer();
     void pushDataToRecvBuffer(const QByteArray &data);
     
-    void setUartProtoConfig(bool needParsed,int fixedLength,QByteArray fixedHead,QByteArray fixedTail,
-            int lengthbytes,int checksumbytes);
-    void setUartProtoConfig(const UartProtoConfig &config);
+    bool setUartProtoConfig(const UartProtoConfig &config,QString &errorText);
+    bool validUartProtoConfig(const UartProtoConfig &config,QString &errorText);
     UartProtoConfig &getUartProtoConfig();
     
     MySerialPort(QObject *parent = 0);

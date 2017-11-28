@@ -39,6 +39,23 @@ private:
     QList<QString> buadrateList;
     QList<QString> databitList;
     QList<QString> stopbitList;
+    int currentPort;
+    int currentBuadrate;
+    int currentDataBit;
+    int currentStopBit;
+    int currentParity;
+    int currentFlowControl;
+    int currentTimeout;
+    
+    int currentUartSendHex;
+    int currentUartSendNewLine;
+    int currentUartSendTimely;
+    int currentUartSendTimelyValue;
+    
+    int currentUartRecvHex;
+    int currentUartAddTimeStamp;
+    
+    UartProtoConfig config;
     
     //串口操作相关变量
     MySerialPort *mySerialPort;
@@ -49,10 +66,13 @@ private:
 private:
     //ui初始化
     void uartSettingsInit();
+    void uartParseInit();
     void uartEnumation();
     void initWidgets();
     void appendStringToPlainText(QString data);
     QString getComm(int index,QString key);
+    void disableUartParseWidgets();
+    void enableUartParseWidgets();
     
     //串口操作
     bool uartOpen();
@@ -66,21 +86,37 @@ private:
     void setupRealtimeDataDemo(QCustomPlot *customPlot);
 public slots:
     //串口操作相关槽函数
-    void uartOnOpen();
-    void uartOnSettingMore();
-    void uartOnSend();
-    void uartOnSendChooseFile();
-    void uartOnRcvClear();
-    void uartOnRcvAddTimestamp(int state);
-    void uartOnRcvHexDisplay(int state);
-    void uartOnRcvSaveToFile(int state);
-    void uartOnSendHex(int state);
-    void uartOnSendTimely(int state);
-    void uartOnSendTimeChanged();
-    void sendTimerTimeout();
     void uartOnDataReceived(const QByteArray &);
     void uartOnDataParsed(const UartDataPackage &parsePkg);
     void uartOnDataParsed(const QByteArray &data);
+    
+    void uartOnBurdRateChanged(int);
+    void uartOnSerialNoChanged(int);
+    void uartOnSettingMore();
+    void uartOnOpen();
+    
+    void uartOnRcvHexDisplay(int);
+    void uartOnRcvSaveToFile(int);
+    void uartOnRcvAddTimestamp(int);
+    void uartOnRcvClear();
+    
+    void uartOnSendHex(int);
+    void uartOnSendNewLine(int);
+    void uartOnSendTimely(int);
+    void uartOnSendTimeChanged();
+    void sendTimerTimeout();
+    void uartOnSend();
+    void uartOnSendExpand();
+    
+    void uartOnParseEnableStateChanged(bool);
+    void uartOnParseFixedLengthStateChanged(int);
+    void uartOnParseFixedLengthValueChanged(int);
+    void uartOnParseHeadTextChanged();
+    void uartOnParseTailTextChanged();
+    void uartOnParseLengthBytesValueChanged(int);
+    void uartOnParseChecksumBytesValueChanged(int);
+    void uartOnParseChecksumIndexChanged(int);
+    void uartOnParseMoreBtnClicked();
     
     //customplot相关槽函数
     void selectionChanged();
